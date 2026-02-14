@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ติดต่อเรา - งานปัจฉิม ม.3</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+        }
+
+        .profile-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .profile-img {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 5px solid #667eea;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+
+        .bio {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .social-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .social-link {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .social-link:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .social-icon {
+            font-size: 24px;
+        }
+
+        .social-info {
+            flex: 1;
+        }
+
+        .social-name {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .social-username {
+            opacity: 0.9;
+            font-size: 0.9em;
+        }
+
+        .admin-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            transition: all 0.3s;
+        }
+
+        .admin-btn:hover {
+            transform: scale(1.1);
+            background: #764ba2;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: transform 0.3s;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .close-modal {
+            float: right;
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 1.2em;
+        }
+
+        .error {
+            background: #ff6b6b;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .success {
+            background: #51cf66;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .card {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .social-links {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="loading" class="loading">กำลังโหลดข้อมูล...</div>
+        
+        <div id="content" style="display: none;">
+            <div class="card">
+                <div class="profile-header">
+                    <img id="profileImg" src="https://via.placeholder.com/150" alt="Profile" class="profile-img">
+                    <h1 id="profileName">ชื่อของคุณ</h1>
+                    <div class="subtitle" id="profileSubtitle">นักเรียนชั้น ม.3</div>
+                    <p class="bio" id="profileBio">แนะนำตัวเองที่นี่...</p>
+                </div>
+
+                <div class="social-links" id="socialLinks"></div>
+            </div>
+        </div>
+    </div>
+
+    <button class="admin-btn" onclick="openAdminModal()">⚙️</button>
+
+    <!-- Admin Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('loginModal')">&times;</span>
+            <h2>Admin Login</h2>
+            <div id="loginError"></div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="loginEmail" placeholder="admin@example.com">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="loginPassword" placeholder="********">
+            </div>
+            <button class="btn" onclick="adminLogin()">เข้าสู่ระบบ</button>
+            <button class="btn btn-secondary" onclick="closeModal('loginModal')">ยกเลิก</button>
+        </div>
+    </div>
+
+    <!-- Admin Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('editModal')">&times;</span>
+            <h2>แก้ไขข้อมูล</h2>
+            <div id="editError"></div>
+            <div id="editSuccess"></div>
+            
+            <div class="form-group">
+                <label>ชื่อ</label>
+                <input type="text" id="editName" placeholder="ชื่อของคุณ">
+            </div>
+            
+            <div class="form-group">
+                <label>คำบรรยาย</label>
+                <input type="text" id="editSubtitle" placeholder="นักเรียนชั้น ม.3">
+            </div>
+            
+            <div class="form-group">
+                <label>แนะนำตัว</label>
+                <textarea id="editBio" placeholder="เขียนแนะนำตัวเองที่นี่..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>รูปโปรไฟล์ URL</label>
+                <input type="url" id="editImage" placeholder="https://example.com/image.jpg">
+            </div>
+
+            <h3 style="margin-top: 30px; margin-bottom: 15px;">ลิงก์โซเชียล</h3>
+            
+            <div class="form-group">
+                <label>Instagram</label>
+                <input type="text" id="editInstagram" placeholder="username">
+            </div>
+            
+            <div class="form-group">
+                <label>Facebook</label>
+                <input type="text" id="editFacebook" placeholder="username หรือ URL">
+            </div>
+            
+            <div class="form-group">
+                <label>Discord</label>
+                <input type="text" id="editDiscord" placeholder="username#1234">
+            </div>
+            
+            <div class="form-group">
+                <label>Roblox</label>
+                <input type="text" id="editRoblox" placeholder="username">
+            </div>
+            
+            <div class="form-group">
+                <label>TikTok</label>
+                <input type="text" id="editTiktok" placeholder="@username">
+            </div>
+            
+            <div class="form-group">
+                <label>LINE ID</label>
+                <input type="text" id="editLine" placeholder="LINE ID">
+            </div>
+
+            <button class="btn" onclick="saveProfile()">บันทึกข้อมูล</button>
+            <button class="btn btn-secondary" onclick="logout()">ออกจากระบบ</button>
+        </div>
+    </div>
+
+    <script>
+        // ⚠️ สำคัญ: ใส่ข้อมูล Supabase ของคุณที่นี่
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let currentUser = null;
+
+        // Social Media Icons
+        const socialIcons = {
+            instagram: '📷',
+            facebook: '👤',
+            discord: '💬',
+            roblox: '🎮',
+            tiktok: '🎵',
+            line: '💚'
+        };
+
+        const socialUrls = {
+            instagram: 'https://instagram.com/',
+            facebook: 'https://facebook.com/',
+            discord: 'https://discord.com/users/',
+            roblox: 'https://www.roblox.com/users/profile?username=',
+            tiktok: 'https://www.tiktok.com/@',
+            line: 'https://line.me/ti/p/~'
+        };
+
+        // Load profile data
+        async function loadProfile() {
+            try {
+                const { data, error } = await supabase
+                    .from('profile')
+                    .select('*')
+                    .single();
+
+                if (error) throw error;
+
+                if (data) {
+                    displayProfile(data);
+                }
+            } catch (error) {
+                console.error('Error loading profile:', error);
+                document.getElementById('loading').innerHTML = 
+                    '<div class="error">ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง</div>';
+            }
+        }
+
+        // Display profile
+        function displayProfile(data) {
+            document.getElementById('profileName').textContent = data.name || 'ชื่อของคุณ';
+            document.getElementById('profileSubtitle').textContent = data.subtitle || 'นักเรียนชั้น ม.3';
+            document.getElementById('profileBio').textContent = data.bio || 'แนะนำตัวเองที่นี่...';
+            document.getElementById('profileImg').src = data.image_url || 'https://via.placeholder.com/150';
+
+            // Display social links
+            const socialLinksContainer = document.getElementById('socialLinks');
+            socialLinksContainer.innerHTML = '';
+
+            const socials = ['instagram', 'facebook', 'discord', 'roblox', 'tiktok', 'line'];
+            
+            socials.forEach(social => {
+                if (data[social]) {
+                    const link = document.createElement('a');
+                    link.href = getSocialUrl(social, data[social]);
+                    link.target = '_blank';
+                    link.className = 'social-link';
+                    
+                    let displayName = social.charAt(0).toUpperCase() + social.slice(1);
+                    
+                    link.innerHTML = `
+                        <div class="social-icon">${socialIcons[social]}</div>
+                        <div class="social-info">
+                            <div class="social-name">${displayName}</div>
+                            <div class="social-username">${data[social]}</div>
+                        </div>
+                    `;
+                    
+                    socialLinksContainer.appendChild(link);
+                }
+            });
+
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+        }
+
+        function getSocialUrl(social, username) {
+            if (social === 'facebook' && username.startsWith('http')) {
+                return username;
+            }
+            return socialUrls[social] + username;
+        }
+
+        // Admin functions
+        function openAdminModal() {
+            document.getElementById('loginModal').classList.add('show');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+
+        async function adminLogin() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorDiv = document.getElementById('loginError');
+
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) throw error;
+
+                currentUser = data.user;
+                closeModal('loginModal');
+                await openEditModal();
+            } catch (error) {
+                errorDiv.innerHTML = `<div class="error">เข้าสู่ระบบไม่สำเร็จ: ${error.message}</div>`;
+            }
+        }
+
+        async function openEditModal() {
+            try {
+                const { data, error } = await supabase
+                    .from('profile')
+                    .select('*')
+                    .single();
+
+                if (error) throw error;
+
+                if (data) {
+                    document.getElementById('editName').value = data.name || '';
+                    document.getElementById('editSubtitle').value = data.subtitle || '';
+                    document.getElementById('editBio').value = data.bio || '';
+                    document.getElementById('editImage').value = data.image_url || '';
+                    document.getElementById('editInstagram').value = data.instagram || '';
+                    document.getElementById('editFacebook').value = data.facebook || '';
+                    document.getElementById('editDiscord').value = data.discord || '';
+                    document.getElementById('editRoblox').value = data.roblox || '';
+                    document.getElementById('editTiktok').value = data.tiktok || '';
+                    document.getElementById('editLine').value = data.line || '';
+                }
+
+                document.getElementById('editModal').classList.add('show');
+            } catch (error) {
+                alert('ไม่สามารถโหลดข้อมูลได้');
+            }
+        }
+
+        async function saveProfile() {
+            const errorDiv = document.getElementById('editError');
+            const successDiv = document.getElementById('editSuccess');
+            
+            try {
+                const profileData = {
+                    name: document.getElementById('editName').value,
+                    subtitle: document.getElementById('editSubtitle').value,
+                    bio: document.getElementById('editBio').value,
+                    image_url: document.getElementById('editImage').value,
+                    instagram: document.getElementById('editInstagram').value,
+                    facebook: document.getElementById('editFacebook').value,
+                    discord: document.getElementById('editDiscord').value,
+                    roblox: document.getElementById('editRoblox').value,
+                    tiktok: document.getElementById('editTiktok').value,
+                    line: document.getElementById('editLine').value
+                };
+
+                const { error } = await supabase
+                    .from('profile')
+                    .upsert(profileData);
+
+                if (error) throw error;
+
+                successDiv.innerHTML = '<div class="success">บันทึกข้อมูลสำเร็จ!</div>';
+                setTimeout(() => {
+                    successDiv.innerHTML = '';
+                    closeModal('editModal');
+                    loadProfile();
+                }, 2000);
+            } catch (error) {
+                errorDiv.innerHTML = `<div class="error">บันทึกข้อมูลไม่สำเร็จ: ${error.message}</div>`;
+            }
+        }
+
+        async function logout() {
+            await supabase.auth.signOut();
+            currentUser = null;
+            closeModal('editModal');
+        }
+
+        // Initialize
+        loadProfile();
+    </script>
+</body>
+</html>
