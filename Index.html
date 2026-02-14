@@ -351,6 +351,36 @@
                 <input type="text" id="editLine" placeholder="LINE ID">
             </div>
 
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="editEmail" placeholder="your@email.com">
+            </div>
+
+            <div class="form-group">
+                <label>โทรศัพท์</label>
+                <input type="tel" id="editPhone" placeholder="081-234-5678">
+            </div>
+
+            <div class="form-group">
+                <label>Twitter</label>
+                <input type="text" id="editTwitter" placeholder="@username">
+            </div>
+
+            <div class="form-group">
+                <label>YouTube</label>
+                <input type="text" id="editYoutube" placeholder="@channel">
+            </div>
+
+            <div class="form-group">
+                <label>GitHub</label>
+                <input type="text" id="editGithub" placeholder="username">
+            </div>
+
+            <div class="form-group">
+                <label>Website</label>
+                <input type="url" id="editWebsite" placeholder="https://yourwebsite.com">
+            </div>
+
             <button class="btn" onclick="saveProfile()">บันทึกข้อมูล</button>
             <button class="btn btn-secondary" onclick="logout()">ออกจากระบบ</button>
         </div>
@@ -361,7 +391,8 @@
         const SUPABASE_URL = 'https://fzclfihfbnremcxrfpkb.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6Y2xmaWhmYm5yZW1jeHJmcGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwNjg0NTgsImV4cCI6MjA4NjY0NDQ1OH0.fnrh3debArYNUC-hIltxHXG1yc60fMWu_bO8YI9uVoI';
         
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let currentUser = null;
 
@@ -372,7 +403,13 @@
             discord: '💬',
             roblox: '🎮',
             tiktok: '🎵',
-            line: '💚'
+            line: '💚',
+            email: '📧',
+            phone: '📱',
+            twitter: '🐦',
+            youtube: '📺',
+            github: '💻',
+            website: '🌐'
         };
 
         const socialUrls = {
@@ -381,13 +418,19 @@
             discord: 'https://discord.com/users/',
             roblox: 'https://www.roblox.com/users/profile?username=',
             tiktok: 'https://www.tiktok.com/@',
-            line: 'https://line.me/ti/p/~'
+            line: 'https://line.me/ti/p/~',
+            email: 'mailto:',
+            phone: 'tel:',
+            twitter: 'https://twitter.com/',
+            youtube: 'https://youtube.com/@',
+            github: 'https://github.com/',
+            website: ''
         };
 
         // Load profile data
         async function loadProfile() {
             try {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('profile')
                     .select('*')
                     .single();
@@ -400,7 +443,7 @@
             } catch (error) {
                 console.error('Error loading profile:', error);
                 document.getElementById('loading').innerHTML = 
-                    '<div class="error">ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง</div>';
+                    '<div class="error">ไม่สามารถโหลดข้อมูลได้ กรุณาตรวจสอบ API Keys และ Database</div>';
             }
         }
 
@@ -415,16 +458,19 @@
             const socialLinksContainer = document.getElementById('socialLinks');
             socialLinksContainer.innerHTML = '';
 
-            const socials = ['instagram', 'facebook', 'discord', 'roblox', 'tiktok', 'line'];
+            const socials = ['instagram', 'facebook', 'discord', 'roblox', 'tiktok', 'line', 'email', 'phone', 'twitter', 'youtube', 'github', 'website'];
             
             socials.forEach(social => {
-                if (data[social]) {
+                if (data[social] && data[social].trim() !== '') {
                     const link = document.createElement('a');
                     link.href = getSocialUrl(social, data[social]);
                     link.target = '_blank';
                     link.className = 'social-link';
                     
                     let displayName = social.charAt(0).toUpperCase() + social.slice(1);
+                    if (social === 'email') displayName = 'Email';
+                    if (social === 'phone') displayName = 'โทรศัพท์';
+                    if (social === 'website') displayName = 'Website';
                     
                     link.innerHTML = `
                         <div class="social-icon">${socialIcons[social]}</div>
@@ -446,6 +492,12 @@
             if (social === 'facebook' && username.startsWith('http')) {
                 return username;
             }
+            if (social === 'website') {
+                return username.startsWith('http') ? username : 'https://' + username;
+            }
+            if (social === 'email' || social === 'phone') {
+                return socialUrls[social] + username;
+            }
             return socialUrls[social] + username;
         }
 
@@ -463,8 +515,13 @@
             const password = document.getElementById('loginPassword').value;
             const errorDiv = document.getElementById('loginError');
 
+            if (!email || !password) {
+                errorDiv.innerHTML = '<div class="error">กรุณากรอก Email และ Password</div>';
+                return;
+            }
+
             try {
-                const { data, error } = await supabase.auth.signInWithPassword({
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
@@ -472,6 +529,7 @@
                 if (error) throw error;
 
                 currentUser = data.user;
+                errorDiv.innerHTML = '';
                 closeModal('loginModal');
                 await openEditModal();
             } catch (error) {
@@ -481,7 +539,7 @@
 
         async function openEditModal() {
             try {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('profile')
                     .select('*')
                     .single();
@@ -499,11 +557,17 @@
                     document.getElementById('editRoblox').value = data.roblox || '';
                     document.getElementById('editTiktok').value = data.tiktok || '';
                     document.getElementById('editLine').value = data.line || '';
+                    document.getElementById('editEmail').value = data.email || '';
+                    document.getElementById('editPhone').value = data.phone || '';
+                    document.getElementById('editTwitter').value = data.twitter || '';
+                    document.getElementById('editYoutube').value = data.youtube || '';
+                    document.getElementById('editGithub').value = data.github || '';
+                    document.getElementById('editWebsite').value = data.website || '';
                 }
 
                 document.getElementById('editModal').classList.add('show');
             } catch (error) {
-                alert('ไม่สามารถโหลดข้อมูลได้');
+                alert('ไม่สามารถโหลดข้อมูลได้: ' + error.message);
             }
         }
 
@@ -513,6 +577,7 @@
             
             try {
                 const profileData = {
+                    id: 1,
                     name: document.getElementById('editName').value,
                     subtitle: document.getElementById('editSubtitle').value,
                     bio: document.getElementById('editBio').value,
@@ -522,28 +587,37 @@
                     discord: document.getElementById('editDiscord').value,
                     roblox: document.getElementById('editRoblox').value,
                     tiktok: document.getElementById('editTiktok').value,
-                    line: document.getElementById('editLine').value
+                    line: document.getElementById('editLine').value,
+                    email: document.getElementById('editEmail').value,
+                    phone: document.getElementById('editPhone').value,
+                    twitter: document.getElementById('editTwitter').value,
+                    youtube: document.getElementById('editYoutube').value,
+                    github: document.getElementById('editGithub').value,
+                    website: document.getElementById('editWebsite').value
                 };
 
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('profile')
                     .upsert(profileData);
 
                 if (error) throw error;
 
-                successDiv.innerHTML = '<div class="success">บันทึกข้อมูลสำเร็จ!</div>';
+                successDiv.innerHTML = '<div class="success">✅ บันทึกข้อมูลสำเร็จ!</div>';
+                errorDiv.innerHTML = '';
+                
                 setTimeout(() => {
                     successDiv.innerHTML = '';
                     closeModal('editModal');
                     loadProfile();
-                }, 2000);
+                }, 1500);
             } catch (error) {
-                errorDiv.innerHTML = `<div class="error">บันทึกข้อมูลไม่สำเร็จ: ${error.message}</div>`;
+                errorDiv.innerHTML = `<div class="error">❌ บันทึกข้อมูลไม่สำเร็จ: ${error.message}</div>`;
+                successDiv.innerHTML = '';
             }
         }
 
         async function logout() {
-            await supabase.auth.signOut();
+            await supabaseClient.auth.signOut();
             currentUser = null;
             closeModal('editModal');
         }
