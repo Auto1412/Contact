@@ -290,7 +290,7 @@
                 <label>Confirm Password</label>
                 <input type="password" id="confirmPassword" placeholder="********">
             </div>
-            <button class="btn" id="authButton" onclick="handleAuth()">เข้าสู่ระบบ</button>
+            <button class="btn" id="authButton">เข้าสู่ระบบ</button>
             <button class="btn btn-secondary" id="toggleAuthMode" onclick="toggleAuthMode()">สร้างบัญชีใหม่</button>
             <button class="btn btn-secondary" onclick="closeModal('loginModal')">ยกเลิก</button>
         </div>
@@ -545,14 +545,6 @@
             }
         }
 
-        function handleAuth() {
-            if (isSignupMode) {
-                signupUser();
-            } else {
-                adminLogin();
-            }
-        }
-
         async function signupUser() {
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
@@ -600,8 +592,7 @@
                             name: 'ชื่อของคุณ',
                             subtitle: 'นักเรียนชั้น ม.3',
                             bio: 'แนะนำตัวเองที่นี่...',
-                            email: email,
-                            created_at: new Date().toISOString()
+                            email: email
                         }]);
 
                     if (profileError) {
