@@ -545,78 +545,77 @@
             }
         }
 
-        async function signupUser() {
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            const confirmPass = document.getElementById('confirmPassword').value;
-            const errorDiv = document.getElementById('loginError');
+     async function signupUser() {
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    const confirmPass = document.getElementById('confirmPassword').value;
+    const errorDiv = document.getElementById('loginError');
 
-            // Validation
-            if (!email || !password || !confirmPass) {
-                errorDiv.innerHTML = '<div class="error">กรุณากรอกข้อมูลให้ครบถ้วน</div>';
-                return;
+    // Validation...
+    if (!email || !password || !confirmPass) {
+        errorDiv.innerHTML = '<div class="error">กรุณากรอกข้อมูลให้ครบถ้วน</div>';
+        return;
+    }
+
+    if (password.length < 6) {
+        errorDiv.innerHTML = '<div class="error">รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร</div>';
+        return;
+    }
+
+    if (password !== confirmPass) {
+        errorDiv.innerHTML = '<div class="error">รหัสผ่านไม่ตรงกัน</div>';
+        return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        errorDiv.innerHTML = '<div class="error">รูปแบบอีเมลไม่ถูกต้อง</div>';
+        return;
+    }
+
+    try {
+        const { data, error } = await supabaseClient.auth.signUp({
+            email: email,
+            password: password,
+            options: {
+                emailRedirectTo: window.location.origin // Auto-confirm redirect
+            }
+        });
+
+        if (error) throw error;
+
+        if (data.user) {
+            const { error: profileError } = await supabaseClient
+                .from('profile')
+                .insert([{
+                    user_id: data.user.id,
+                    name: 'ชื่อของคุณ',
+                    subtitle: 'นักเรียนชั้น ม.3',
+                    bio: 'แนะนำตัวเองที่นี่...',
+                    email: email
+                }]);
+
+            if (profileError) {
+                console.error('Profile creation error:', profileError);
             }
 
-            if (password.length < 6) {
-                errorDiv.innerHTML = '<div class="error">รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร</div>';
-                return;
-            }
-
-            if (password !== confirmPass) {
-                errorDiv.innerHTML = '<div class="error">รหัสผ่านไม่ตรงกัน</div>';
-                return;
-            }
-
-            // Basic email validation
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                errorDiv.innerHTML = '<div class="error">รูปแบบอีเมลไม่ถูกต้อง</div>';
-                return;
-            }
-
-            try {
-                // Sign up user with Supabase
-                const { data, error } = await supabaseClient.auth.signUp({
-                    email: email,
-                    password: password
-                });
-
-                if (error) throw error;
-
-                if (data.user) {
-                    // Create initial profile entry in database
-                    const { error: profileError } = await supabaseClient
-                        .from('profile')
-                        .insert([{
-                            user_id: data.user.id,
-                            name: 'ชื่อของคุณ',
-                            subtitle: 'นักเรียนชั้น ม.3',
-                            bio: 'แนะนำตัวเองที่นี่...',
-                            email: email
-                        }]);
-
-                    if (profileError) {
-                        console.error('Profile creation error:', profileError);
-                    }
-
-                    currentUser = data.user;
-                    errorDiv.innerHTML = '<div class="success">✅ สร้างบัญชีสำเร็จ! กำลังเข้าสู่ระบบ...</div>';
-                    
-                    // Clear form
-                    document.getElementById('loginEmail').value = '';
-                    document.getElementById('loginPassword').value = '';
-                    document.getElementById('confirmPassword').value = '';
-                    
-                    setTimeout(async () => {
-                        errorDiv.innerHTML = '';
-                        closeModal('loginModal');
-                        await openEditModal();
-                    }, 1500);
-                }
-            } catch (error) {
-                errorDiv.innerHTML = `<div class="error">สร้างบัญชีไม่สำเร็จ: ${error.message}</div>`;
-            }
+            currentUser = data.user;
+            errorDiv.innerHTML = '<div class="success">✅ สร้างบัญชีสำเร็จ! โปรดตรวจสอบอีเมลเพื่อยืนยัน</div>';
+            
+            document.getElementById('loginEmail').value = '';
+            document.getElementById('loginPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            
+            setTimeout(async () => {
+                errorDiv.innerHTML = '';
+                closeModal('loginModal');
+                await openEditModal();
+            }, 2000);
         }
+    } catch (error) {
+        errorDiv.innerHTML = `<div class="error">สร้างบัญชีไม่สำเร็จ: ${error.message}</div>`;
+    }
+}
 
         async function adminLogin() {
             const email = document.getElementById('loginEmail').value;
