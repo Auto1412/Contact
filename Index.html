@@ -255,7 +255,7 @@
 <body>
     <div class="container">
         <div id="loading" class="loading">กำลังโหลดข้อมูล...</div>
-        
+
         <div id="content" style="display: none;">
             <div class="card">
                 <div class="profile-header">
@@ -277,6 +277,7 @@
         <div class="modal-content">
             <span class="close-modal" onclick="closeModal('loginModal')">&times;</span>
             <h2>Admin Login</h2>
+            <h2 id="authTitle">Admin Login</h2>
             <div id="loginError"></div>
             <div class="form-group">
                 <label>Email</label>
@@ -287,6 +288,12 @@
                 <input type="password" id="loginPassword" placeholder="********">
             </div>
             <button class="btn" onclick="adminLogin()">เข้าสู่ระบบ</button>
+            <div class="form-group" id="confirmPasswordGroup" style="display: none;">
+                <label>Confirm Password</label>
+                <input type="password" id="confirmPassword" placeholder="********">
+            </div>
+            <button class="btn" id="authButton">เข้าสู่ระบบ</button>
+            <button class="btn btn-secondary" id="toggleAuthMode" onclick="toggleAuthMode()">สร้างบัญชีใหม่</button>
             <button class="btn btn-secondary" onclick="closeModal('loginModal')">ยกเลิก</button>
         </div>
     </div>
@@ -298,54 +305,54 @@
             <h2>แก้ไขข้อมูล</h2>
             <div id="editError"></div>
             <div id="editSuccess"></div>
-            
+
             <div class="form-group">
                 <label>ชื่อ</label>
                 <input type="text" id="editName" placeholder="ชื่อของคุณ">
             </div>
-            
+
             <div class="form-group">
                 <label>คำบรรยาย</label>
                 <input type="text" id="editSubtitle" placeholder="นักเรียนชั้น ม.3">
             </div>
-            
+
             <div class="form-group">
                 <label>แนะนำตัว</label>
                 <textarea id="editBio" placeholder="เขียนแนะนำตัวเองที่นี่..."></textarea>
             </div>
-            
+
             <div class="form-group">
                 <label>รูปโปรไฟล์ URL</label>
                 <input type="url" id="editImage" placeholder="https://example.com/image.jpg">
             </div>
 
             <h3 style="margin-top: 30px; margin-bottom: 15px;">ลิงก์โซเชียล</h3>
-            
+
             <div class="form-group">
                 <label>Instagram</label>
                 <input type="text" id="editInstagram" placeholder="username">
             </div>
-            
+
             <div class="form-group">
                 <label>Facebook</label>
                 <input type="text" id="editFacebook" placeholder="username หรือ URL">
             </div>
-            
+
             <div class="form-group">
                 <label>Discord</label>
                 <input type="text" id="editDiscord" placeholder="username#1234">
             </div>
-            
+
             <div class="form-group">
                 <label>Roblox</label>
                 <input type="text" id="editRoblox" placeholder="username">
             </div>
-            
+
             <div class="form-group">
                 <label>TikTok</label>
                 <input type="text" id="editTiktok" placeholder="@username">
             </div>
-            
+
             <div class="form-group">
                 <label>LINE ID</label>
                 <input type="text" id="editLine" placeholder="LINE ID">
@@ -390,11 +397,12 @@
         // ⚠️ สำคัญ: ใส่ข้อมูล Supabase ของคุณที่นี่
         const SUPABASE_URL = 'https://fzclfihfbnremcxrfpkb.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6Y2xmaWhmYm5yZW1jeHJmcGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwNjg0NTgsImV4cCI6MjA4NjY0NDQ1OH0.fnrh3debArYNUC-hIltxHXG1yc60fMWu_bO8YI9uVoI';
-        
+
         const { createClient } = supabase;
         const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let currentUser = null;
+        let isSignupMode = false;
 
         // Social Media Icons
         const socialIcons = {
@@ -459,19 +467,19 @@
             socialLinksContainer.innerHTML = '';
 
             const socials = ['instagram', 'facebook', 'discord', 'roblox', 'tiktok', 'line', 'email', 'phone', 'twitter', 'youtube', 'github', 'website'];
-            
+
             socials.forEach(social => {
                 if (data[social] && data[social].trim() !== '') {
                     const link = document.createElement('a');
                     link.href = getSocialUrl(social, data[social]);
                     link.target = '_blank';
                     link.className = 'social-link';
-                    
+
                     let displayName = social.charAt(0).toUpperCase() + social.slice(1);
                     if (social === 'email') displayName = 'Email';
                     if (social === 'phone') displayName = 'โทรศัพท์';
                     if (social === 'website') displayName = 'Website';
-                    
+
                     link.innerHTML = `
                         <div class="social-icon">${socialIcons[social]}</div>
                         <div class="social-info">
@@ -479,7 +487,7 @@
                             <div class="social-username">${data[social]}</div>
                         </div>
                     `;
-                    
+
                     socialLinksContainer.appendChild(link);
                 }
             });
@@ -503,11 +511,113 @@
 
         // Admin functions
         function openAdminModal() {
+            isSignupMode = false;
+            updateAuthMode();
             document.getElementById('loginModal').classList.add('show');
         }
 
         function closeModal(modalId) {
             document.getElementById(modalId).classList.remove('show');
+        }
+
+        function toggleAuthMode() {
+            isSignupMode = !isSignupMode;
+            updateAuthMode();
+            document.getElementById('loginError').innerHTML = '';
+        }
+
+        function updateAuthMode() {
+            const authTitle = document.getElementById('authTitle');
+            const authButton = document.getElementById('authButton');
+            const toggleButton = document.getElementById('toggleAuthMode');
+            const confirmPasswordGroup = document.getElementById('confirmPasswordGroup');
+            
+            if (isSignupMode) {
+                authTitle.textContent = 'Create Account';
+                authButton.textContent = 'สร้างบัญชี';
+                authButton.onclick = signupUser;
+                toggleButton.textContent = 'มีบัญชีอยู่แล้ว? เข้าสู่ระบบ';
+                confirmPasswordGroup.style.display = 'block';
+            } else {
+                authTitle.textContent = 'Admin Login';
+                authButton.textContent = 'เข้าสู่ระบบ';
+                authButton.onclick = adminLogin;
+                toggleButton.textContent = 'สร้างบัญชีใหม่';
+                confirmPasswordGroup.style.display = 'none';
+            }
+        }
+
+        async function signupUser() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const confirmPass = document.getElementById('confirmPassword').value;
+            const errorDiv = document.getElementById('loginError');
+
+            // Validation
+            if (!email || !password || !confirmPass) {
+                errorDiv.innerHTML = '<div class="error">กรุณากรอกข้อมูลให้ครบถ้วน</div>';
+                return;
+            }
+
+            if (password.length < 6) {
+                errorDiv.innerHTML = '<div class="error">รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร</div>';
+                return;
+            }
+
+            if (password !== confirmPass) {
+                errorDiv.innerHTML = '<div class="error">รหัสผ่านไม่ตรงกัน</div>';
+                return;
+            }
+
+            // Basic email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                errorDiv.innerHTML = '<div class="error">รูปแบบอีเมลไม่ถูกต้อง</div>';
+                return;
+            }
+
+            try {
+                // Sign up user with Supabase
+                const { data, error } = await supabaseClient.auth.signUp({
+                    email: email,
+                    password: password
+                });
+
+                if (error) throw error;
+
+                if (data.user) {
+                    // Create initial profile entry in database
+                    const { error: profileError } = await supabaseClient
+                        .from('profile')
+                        .insert([{
+                            user_id: data.user.id,
+                            name: 'ชื่อของคุณ',
+                            subtitle: 'นักเรียนชั้น ม.3',
+                            bio: 'แนะนำตัวเองที่นี่...',
+                            email: email
+                        }]);
+
+                    if (profileError) {
+                        console.error('Profile creation error:', profileError);
+                    }
+
+                    currentUser = data.user;
+                    errorDiv.innerHTML = '<div class="success">✅ สร้างบัญชีสำเร็จ! กำลังเข้าสู่ระบบ...</div>';
+                    
+                    // Clear form
+                    document.getElementById('loginEmail').value = '';
+                    document.getElementById('loginPassword').value = '';
+                    document.getElementById('confirmPassword').value = '';
+                    
+                    setTimeout(async () => {
+                        errorDiv.innerHTML = '';
+                        closeModal('loginModal');
+                        await openEditModal();
+                    }, 1500);
+                }
+            } catch (error) {
+                errorDiv.innerHTML = `<div class="error">สร้างบัญชีไม่สำเร็จ: ${error.message}</div>`;
+            }
         }
 
         async function adminLogin() {
@@ -574,7 +684,7 @@
         async function saveProfile() {
             const errorDiv = document.getElementById('editError');
             const successDiv = document.getElementById('editSuccess');
-            
+
             try {
                 const profileData = {
                     id: 1,
@@ -604,7 +714,7 @@
 
                 successDiv.innerHTML = '<div class="success">✅ บันทึกข้อมูลสำเร็จ!</div>';
                 errorDiv.innerHTML = '';
-                
+
                 setTimeout(() => {
                     successDiv.innerHTML = '';
                     closeModal('editModal');
