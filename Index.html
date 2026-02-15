@@ -276,7 +276,7 @@
     <div id="loginModal" class="modal">
         <div class="modal-content">
             <span class="close-modal" onclick="closeModal('loginModal')">&times;</span>
-            <h2>Admin Login</h2>
+            <h2 id="authTitle">Admin Login</h2>
             <div id="loginError"></div>
             <div class="form-group">
                 <label>Email</label>
@@ -286,7 +286,12 @@
                 <label>Password</label>
                 <input type="password" id="loginPassword" placeholder="********">
             </div>
-            <button class="btn" onclick="adminLogin()">เข้าสู่ระบบ</button>
+            <div class="form-group" id="confirmPasswordGroup" style="display: none;">
+                <label>Confirm Password</label>
+                <input type="password" id="confirmPassword" placeholder="********">
+            </div>
+            <button class="btn" id="authButton" onclick="handleAuth()">เข้าสู่ระบบ</button>
+            <button class="btn btn-secondary" id="toggleAuthMode" onclick="toggleAuthMode()">สร้างบัญชีใหม่</button>
             <button class="btn btn-secondary" onclick="closeModal('loginModal')">ยกเลิก</button>
         </div>
     </div>
@@ -395,6 +400,7 @@
         const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let currentUser = null;
+        let isSignupMode = false;
 
         // Social Media Icons
         const socialIcons = {
@@ -503,11 +509,122 @@
 
         // Admin functions
         function openAdminModal() {
+            isSignupMode = false;
+            updateAuthMode();
             document.getElementById('loginModal').classList.add('show');
         }
 
         function closeModal(modalId) {
             document.getElementById(modalId).classList.remove('show');
+        }
+
+        function toggleAuthMode() {
+            isSignupMode = !isSignupMode;
+            updateAuthMode();
+            document.getElementById('loginError').innerHTML = '';
+        }
+
+        function updateAuthMode() {
+            const authTitle = document.getElementById('authTitle');
+            const authButton = document.getElementById('authButton');
+            const toggleButton = document.getElementById('toggleAuthMode');
+            const confirmPasswordGroup = document.getElementById('confirmPasswordGroup');
+            
+            if (isSignupMode) {
+                authTitle.textContent = 'Create Account';
+                authButton.textContent = 'สร้างบัญชี';
+                authButton.onclick = signupUser;
+                toggleButton.textContent = 'มีบัญชีอยู่แล้ว? เข้าสู่ระบบ';
+                confirmPasswordGroup.style.display = 'block';
+            } else {
+                authTitle.textContent = 'Admin Login';
+                authButton.textContent = 'เข้าสู่ระบบ';
+                authButton.onclick = adminLogin;
+                toggleButton.textContent = 'สร้างบัญชีใหม่';
+                confirmPasswordGroup.style.display = 'none';
+            }
+        }
+
+        function handleAuth() {
+            if (isSignupMode) {
+                signupUser();
+            } else {
+                adminLogin();
+            }
+        }
+
+        async function signupUser() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const confirmPass = document.getElementById('confirmPassword').value;
+            const errorDiv = document.getElementById('loginError');
+
+            // Validation
+            if (!email || !password || !confirmPass) {
+                errorDiv.innerHTML = '<div class="error">กรุณากรอกข้อมูลให้ครบถ้วน</div>';
+                return;
+            }
+
+            if (password.length < 6) {
+                errorDiv.innerHTML = '<div class="error">รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร</div>';
+                return;
+            }
+
+            if (password !== confirmPass) {
+                errorDiv.innerHTML = '<div class="error">รหัสผ่านไม่ตรงกัน</div>';
+                return;
+            }
+
+            // Basic email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                errorDiv.innerHTML = '<div class="error">รูปแบบอีเมลไม่ถูกต้อง</div>';
+                return;
+            }
+
+            try {
+                // Sign up user with Supabase
+                const { data, error } = await supabaseClient.auth.signUp({
+                    email: email,
+                    password: password
+                });
+
+                if (error) throw error;
+
+                if (data.user) {
+                    // Create initial profile entry in database
+                    const { error: profileError } = await supabaseClient
+                        .from('profile')
+                        .insert([{
+                            user_id: data.user.id,
+                            name: 'ชื่อของคุณ',
+                            subtitle: 'นักเรียนชั้น ม.3',
+                            bio: 'แนะนำตัวเองที่นี่...',
+                            email: email,
+                            created_at: new Date().toISOString()
+                        }]);
+
+                    if (profileError) {
+                        console.error('Profile creation error:', profileError);
+                    }
+
+                    currentUser = data.user;
+                    errorDiv.innerHTML = '<div class="success">✅ สร้างบัญชีสำเร็จ! กำลังเข้าสู่ระบบ...</div>';
+                    
+                    // Clear form
+                    document.getElementById('loginEmail').value = '';
+                    document.getElementById('loginPassword').value = '';
+                    document.getElementById('confirmPassword').value = '';
+                    
+                    setTimeout(async () => {
+                        errorDiv.innerHTML = '';
+                        closeModal('loginModal');
+                        await openEditModal();
+                    }, 1500);
+                }
+            } catch (error) {
+                errorDiv.innerHTML = `<div class="error">สร้างบัญชีไม่สำเร็จ: ${error.message}</div>`;
+            }
         }
 
         async function adminLogin() {
