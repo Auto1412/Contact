@@ -892,6 +892,9 @@
                 const overlay = document.getElementById('congratsOverlay');
                 overlay.style.display = 'flex';
                 
+                // Mark as seen immediately to prevent refresh issues
+                localStorage.setItem('hasSeenCongrats', 'true');
+                
                 // Trigger confetti
                 const duration = 3000;
                 const animationEnd = Date.now() + duration;
@@ -901,24 +904,26 @@
                     return Math.random() * (max - min) + min;
                 }
 
-                const interval = setInterval(function() {
-                    const timeLeft = animationEnd - Date.now();
+                function launchConfetti() {
+                    const particleCount = 50 * (timeLeft / duration);
+                    const xRanges = [[0.1, 0.3], [0.7, 0.9]];
+                    
+                    xRanges.forEach(range => {
+                        confetti(Object.assign({}, defaults, {
+                            particleCount,
+                            origin: { x: randomInRange(range[0], range[1]), y: Math.random() - 0.2 }
+                        }));
+                    });
+                }
 
-                    if (timeLeft <= 0) {
+                const interval = setInterval(function() {
+                    window.timeLeft = animationEnd - Date.now();
+
+                    if (window.timeLeft <= 0) {
                         return clearInterval(interval);
                     }
 
-                    const particleCount = 50 * (timeLeft / duration);
-                    
-                    // Launch confetti from different positions
-                    confetti(Object.assign({}, defaults, {
-                        particleCount,
-                        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
-                    }));
-                    confetti(Object.assign({}, defaults, {
-                        particleCount,
-                        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
-                    }));
+                    launchConfetti();
                 }, 250);
 
                 // Vibration for mobile devices (if supported)
@@ -926,14 +931,13 @@
                     navigator.vibrate([200, 100, 200]);
                 }
 
-                // Close overlay on click
+                // Close overlay on click (using { once: true } to prevent multiple listeners)
                 overlay.addEventListener('click', function() {
                     overlay.classList.add('fade-out');
                     setTimeout(() => {
                         overlay.style.display = 'none';
-                        localStorage.setItem('hasSeenCongrats', 'true');
                     }, 500);
-                });
+                }, { once: true });
             }
         }
 
