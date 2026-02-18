@@ -904,7 +904,7 @@
                     return Math.random() * (max - min) + min;
                 }
 
-                function launchConfetti() {
+                function launchConfetti(timeLeft) {
                     const particleCount = 50 * (timeLeft / duration);
                     const xRanges = [[0.1, 0.3], [0.7, 0.9]];
                     
@@ -917,13 +917,13 @@
                 }
 
                 const interval = setInterval(function() {
-                    window.timeLeft = animationEnd - Date.now();
+                    const timeLeft = animationEnd - Date.now();
 
-                    if (window.timeLeft <= 0) {
+                    if (timeLeft <= 0) {
                         return clearInterval(interval);
                     }
 
-                    launchConfetti();
+                    launchConfetti(timeLeft);
                 }, 250);
 
                 // Vibration for mobile devices (if supported)
@@ -938,6 +938,8 @@
                         overlay.style.display = 'none';
                     }, 500);
                 }, { once: true });
+            }
+        }
             }
         }
 
